@@ -1,6 +1,7 @@
 use ammonia::{Builder, UrlRelative};
 use serde::Serialize;
 use std::borrow::Cow;
+use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct HtmlSanitizer {
@@ -12,16 +13,16 @@ impl HtmlSanitizer {
         let mut cleaner = Builder::default();
         
         // Configure HTML sanitization rules
-        cleaner.tags(hashset![
+        cleaner.tags(HashSet::from([
             "p", "br", "ul", "ol", "li", "h1", "h2", "h3",
             "h4", "h5", "h6", "pre", "code", "strong", "em",
             "a", "img", "blockquote"
-        ]);
+        ]));
         
-        cleaner.tag_attributes(hashmap![
-            "a" => hashset!["href", "title"],
-            "img" => hashset!["src", "alt", "title"],
-        ]);
+        cleaner.tag_attributes(HashMap::from([
+            ("a", HashSet::from(["href", "title"])),
+            ("img", HashSet::from(["src", "alt", "title"])),
+        ]));
         
         cleaner.link_rel(Some(Cow::Borrowed("noopener noreferrer")));
         cleaner.url_relative(UrlRelative::Deny);
