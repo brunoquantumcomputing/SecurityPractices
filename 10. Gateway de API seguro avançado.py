@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -8,10 +10,20 @@ from datetime import datetime, timedelta
 import secrets
 import logging
 from functools import wraps
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from pyotp import TOTP
+from markupsafe import escape
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Rate limiting
+limiter = Limiter(key_func=get_remote_address)
 
 # Fake database
 fake_users_db = {
@@ -57,7 +69,7 @@ class UserInDB(User):
     hashed_password: str
 
 # Token management
-SECRET_KEY = secrets.token_hex(32)
+SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -171,6 +183,10 @@ async def http_exception_handler(request, exc):
         status_code=exc.status_code,
         content={"detail": exc.detail},
     )
+
+# Add rate limiting to all routes
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
 
 if __name__ == "__main__":
     import uvicorn
